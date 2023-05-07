@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">FileManager</string>
+    <string name="files_not_found">Files not found</string>
 </resources>
