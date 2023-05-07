@@ -32,7 +32,7 @@ class MainActivity : AppCompatActivity(), FileAdapter.Listener {
             if ((it as TextView).text != Environment.getExternalStorageDirectory().path) {
                 val path = it.text.dropLastWhile { char -> char != File.separatorChar }.dropLast(1)
                     .toString()
-                binding.fileList.adapter = FileAdapter(this ,openFile(path))
+                binding.fileList.adapter = FileAdapter(this, openFile(path))
             }
         }
     }
@@ -90,7 +90,8 @@ class MainActivity : AppCompatActivity(), FileAdapter.Listener {
                         .contains(".wav", true) -> "audio/*"
 
                     fileUri.toString().contains(".jpeg", true) || fileUri.toString()
-                        .contains(".png", true) -> "image/*"
+                        .contains(".png", true) || fileUri.toString()
+                        .contains(".jpg", true) -> "image/*"
 
                     fileUri.toString().contains(".mp4", true) -> "video/*"
                     else -> "*/*"

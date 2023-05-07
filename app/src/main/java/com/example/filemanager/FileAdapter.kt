@@ -1,7 +1,7 @@
 package com.example.filemanager
 
 import android.app.Activity
-import android.content.Context
+import android.os.Build
 import android.text.format.Formatter
 import android.view.LayoutInflater
 import android.view.View
@@ -10,12 +10,17 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.ViewHolder
 import com.example.filemanager.databinding.ItemBinding
 import java.io.File
+import java.nio.file.Files
+import java.nio.file.attribute.BasicFileAttributes
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 class FileAdapter(val context: Activity, val files: Array<out File>) :
     RecyclerView.Adapter<FileAdapter.FileHolder>() {
 
     class FileHolder(view: View, val context: Activity) : ViewHolder(view) {
         val item = ItemBinding.bind(view)
+
         fun bind(file: File) {
             item.apply {
                 text.text = file.name
@@ -28,7 +33,14 @@ class FileAdapter(val context: Activity, val files: Array<out File>) :
                     icon.setImageResource(R.drawable.file)
                     size.text = Formatter.formatShortFileSize(context, file.length())
                 }
-
+                val createdTime = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    Files.readAttributes(file.toPath(), BasicFileAttributes::class.java)
+                        .creationTime().toMillis()
+                } else {
+                    file.lastModified()
+                }
+                val dateFormat = SimpleDateFormat("dd-MM-yyyy HH:mm:ss", Locale.getDefault())
+                timeCreated.text = dateFormat.format(createdTime)
                 text.isSelected = true
             }
             itemView.setOnClickListener {
