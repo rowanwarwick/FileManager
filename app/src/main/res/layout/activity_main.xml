@@ -21,10 +21,14 @@
         app:layout_constraintTop_toTopOf="parent"/>
 
     <TextView
-        android:padding="5dp"
+        android:paddingLeft="5dp"
         android:id="@+id/path"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:ellipsize="marquee"
+        android:marqueeRepeatLimit = "1"
+        android:singleLine="true"
+        android:scrollHorizontally="true"
         android:textColor="@color/black"
         android:textSize="16sp"
         android:textStyle="italic"

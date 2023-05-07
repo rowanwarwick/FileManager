@@ -26,12 +26,13 @@ class MainActivity : AppCompatActivity(), FileAdapter.Listener {
         if (!checkPermission()) requestPermission()
         val files = openFile(Environment.getExternalStorageDirectory().path)
         binding.fileList.layoutManager = LinearLayoutManager(this)
-        binding.fileList.adapter = FileAdapter(files, this)
+        binding.fileList.adapter = FileAdapter(this, files)
+        binding.path.isSelected = true
         binding.path.setOnClickListener {
             if ((it as TextView).text != Environment.getExternalStorageDirectory().path) {
                 val path = it.text.dropLastWhile { char -> char != File.separatorChar }.dropLast(1)
                     .toString()
-                binding.fileList.adapter = FileAdapter(openFile(path), this)
+                binding.fileList.adapter = FileAdapter(this ,openFile(path))
             }
         }
     }
@@ -72,9 +73,8 @@ class MainActivity : AppCompatActivity(), FileAdapter.Listener {
     override fun onClick(file: File) {
         if (file.isDirectory) {
             val files = openFile(file.path)
-            binding.fileList.adapter = FileAdapter(files, this)
+            binding.fileList.adapter = FileAdapter(this, files)
         } else {
-            Toast.makeText(this, file.name, Toast.LENGTH_SHORT).show()
             val imagePath = file.path
             val fileUri = FileProvider.getUriForFile(
                 this,
