@@ -8,10 +8,10 @@ import androidx.recyclerview.widget.RecyclerView.ViewHolder
 import com.example.filemanager.databinding.ItemBinding
 import java.io.File
 
-class FileAdapter(val files: Array<out File>) :
+class FileAdapter(val files: Array<out File>, val listener: Listener?) :
     RecyclerView.Adapter<FileAdapter.FileHolder>() {
 
-    class FileHolder(view: View) : ViewHolder(view) {
+    class FileHolder(view: View, val listener: Listener?) : ViewHolder(view) {
         val item = ItemBinding.bind(view)
         fun bind(file: File) {
             item.apply {
@@ -22,12 +22,15 @@ class FileAdapter(val files: Array<out File>) :
                     icon.setImageResource(R.drawable.file)
                 }
             }
+            itemView.setOnClickListener {
+                listener?.onClick(file)
+            }
         }
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): FileHolder {
         val view = LayoutInflater.from(parent.context).inflate(R.layout.item, parent, false)
-        return FileHolder(view)
+        return FileHolder(view, listener)
     }
 
     override fun getItemCount() = files.size
@@ -36,4 +39,7 @@ class FileAdapter(val files: Array<out File>) :
         holder.bind(files[position])
     }
 
+    interface Listener {
+        fun onClick(file: File)
+    }
 }
