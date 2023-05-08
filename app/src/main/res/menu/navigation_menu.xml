@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    tools:showIn="navigation_view">
+
+    <item android:title="SORTING">
+        <menu>
+            <group android:checkableBehavior="single">
+                <item
+                    android:id="@+id/name"
+
+                    android:title="by name (default)" />
+                <item
+                    android:id="@+id/size_asc"
+                    android:title="by size asc"/>
+                <item
+                    android:id="@+id/size_desc"
+                    android:title="by size desc"/>
+                <item
+                    android:id="@+id/date_asc"
+                    android:title="by date create asc" />
+                <item
+                    android:id="@+id/date_desc"
+                    android:title="by date create desc" />
+                <item
+                    android:id="@+id/format_asc"
+                    android:title="by format file asc" />
+                <item
+                    android:id="@+id/format_desc"
+                    android:title="by format file desc" />
+            </group>
+        </menu>
+    </item>
+</menu>

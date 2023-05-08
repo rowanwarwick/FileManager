@@ -5,15 +5,19 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.os.Environment
+import android.view.MenuItem
 import android.view.View
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
+import androidx.core.view.GravityCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.filemanager.databinding.ActivityMainBinding
+import com.google.android.material.navigation.NavigationView
 import java.io.File
 
 class MainActivity : AppCompatActivity(), FileAdapter.Listener {
@@ -23,6 +27,7 @@ class MainActivity : AppCompatActivity(), FileAdapter.Listener {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        setSupportActionBar(binding.toolbar)
         if (!checkPermission()) requestPermission()
         val files = openFile(Environment.getExternalStorageDirectory().path)
         binding.fileList.layoutManager = LinearLayoutManager(this)
@@ -34,6 +39,9 @@ class MainActivity : AppCompatActivity(), FileAdapter.Listener {
                     .toString()
                 binding.fileList.adapter = FileAdapter(this, openFile(path))
             }
+        }
+        binding.toolbar.setNavigationOnClickListener {
+            binding.activity.openDrawer(GravityCompat.START)
         }
     }
 
@@ -84,7 +92,9 @@ class MainActivity : AppCompatActivity(), FileAdapter.Listener {
             val intent = Intent(Intent.ACTION_VIEW)
             intent.setDataAndType(
                 fileUri, when {
-                    fileUri.toString().contains(".doc", true) -> "application/msword"
+                    fileUri.toString().contains(".doc", true) || fileUri.toString()
+                        .contains(".txt", true) -> "application/msword"
+
                     fileUri.toString().contains(".pdf", true) -> "application/pdf"
                     fileUri.toString().contains(".mp3", true) || fileUri.toString()
                         .contains(".wav", true) -> "audio/*"
