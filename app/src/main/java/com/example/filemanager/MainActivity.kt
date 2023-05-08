@@ -3,25 +3,28 @@ package com.example.filemanager
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.view.MenuItem
 import android.view.View
 import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.core.view.GravityCompat
-import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.filemanager.databinding.ActivityMainBinding
-import com.google.android.material.navigation.NavigationView
 import java.io.File
+import java.io.IOException
+import java.nio.file.Files
+import java.nio.file.attribute.BasicFileAttributes
 
 class MainActivity : AppCompatActivity(), FileAdapter.Listener {
+    private lateinit var adapterFiles: FileAdapter
     private lateinit var binding: ActivityMainBinding
+    private var pathToDirectory = Environment.getExternalStorageDirectory().path
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -29,39 +32,93 @@ class MainActivity : AppCompatActivity(), FileAdapter.Listener {
         setContentView(binding.root)
         setSupportActionBar(binding.toolbar)
         if (!checkPermission()) requestPermission()
-        val files = openFile(Environment.getExternalStorageDirectory().path)
-        binding.fileList.layoutManager = LinearLayoutManager(this)
-        binding.fileList.adapter = FileAdapter(this, files)
         binding.path.isSelected = true
-        binding.path.setOnClickListener {
-            if ((it as TextView).text != Environment.getExternalStorageDirectory().path) {
-                val path = it.text.dropLastWhile { char -> char != File.separatorChar }.dropLast(1)
-                    .toString()
-                binding.fileList.adapter = FileAdapter(this, openFile(path))
-            }
+        adapterFiles = FileAdapter(this, File(pathToDirectory).listFiles() ?: arrayOf())
+        binding.fileList.adapter = adapterFiles
+        watchFilesInRecycleView(pathToDirectory)
+        openNavigationView()
+        goInUpFolder()
+        chooseKindSorting()
+    }
+
+    private fun sortingArrayFiles(files: Array<File>) {
+        val menu = binding.menu.menu
+        when {
+            menu.findItem(R.id.default_choose).isChecked -> files.sort()
+            menu.findItem(R.id.size_asc).isChecked -> files.sortWith(compareBy { it.length() })
+            menu.findItem(R.id.size_desc).isChecked -> files.sortWith(compareByDescending { it.length() })
+            menu.findItem(R.id.date_asc).isChecked -> files.sortWith(compareBy {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) Files.readAttributes(
+                    it.toPath(),
+                    BasicFileAttributes::class.java
+                )
+                    .creationTime().toMillis() else it.lastModified()
+            })
+
+            menu.findItem(R.id.date_desc).isChecked -> files.sortWith(compareByDescending {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) Files.readAttributes(
+                    it.toPath(),
+                    BasicFileAttributes::class.java
+                )
+                    .creationTime().toMillis() else it.lastModified()
+            })
+
+            menu.findItem(R.id.format_asc).isChecked -> files.sortWith(compareBy {
+                if (it.isFile) Regex("\\..+").findAll(
+                    it.name
+                ).last().value else null
+            })
+
+            menu.findItem(R.id.format_desc).isChecked -> files.sortWith(compareByDescending {
+                if (it.isFile) Regex("\\..+").findAll(
+                    it.name
+                ).last().value else null
+            })
         }
+    }
+
+    private fun watchFilesInRecycleView(path: String) {
+        binding.noFiles.visibility = View.INVISIBLE
+        binding.path.text = path
+        val array = File(path).listFiles()
+        if (array == null || array.isEmpty()) {
+            binding.noFiles.visibility = View.VISIBLE
+        } else {
+            sortingArrayFiles(array)
+        }
+        adapterFiles.changeFiles(array ?: arrayOf())
+    }
+
+    private fun chooseKindSorting() {
+        binding.menu.setNavigationItemSelectedListener {
+            it.isChecked = true
+            watchFilesInRecycleView(pathToDirectory)
+            return@setNavigationItemSelectedListener true
+        }
+    }
+
+    private fun openNavigationView() {
         binding.toolbar.setNavigationOnClickListener {
             binding.activity.openDrawer(GravityCompat.START)
         }
     }
 
-    fun openFile(path: String): Array<out File> {
-        binding.noFiles.visibility = View.INVISIBLE
-        binding.path.text = path
-        val file = File(path)
-        val list = file.listFiles()?.sorted()?.toTypedArray()
-        if (list == null || list.isEmpty()) {
-            binding.noFiles.visibility = View.VISIBLE
+    private fun goInUpFolder() {
+        binding.path.setOnClickListener {
+            if ((it as TextView).text != Environment.getExternalStorageDirectory().path) {
+                val path = it.text.dropLastWhile { char -> char != File.separatorChar }.dropLast(1)
+                    .toString()
+                watchFilesInRecycleView(path)
+            }
         }
-        return list ?: arrayOf()
     }
 
-    fun checkPermission() = ContextCompat.checkSelfPermission(
+    private fun checkPermission() = ContextCompat.checkSelfPermission(
         this,
         Manifest.permission.READ_EXTERNAL_STORAGE
     ) == PackageManager.PERMISSION_GRANTED
 
-    fun requestPermission() {
+    private fun requestPermission() {
         if (ActivityCompat.shouldShowRequestPermissionRationale(
                 this,
                 Manifest.permission.READ_EXTERNAL_STORAGE
@@ -80,37 +137,19 @@ class MainActivity : AppCompatActivity(), FileAdapter.Listener {
 
     override fun onClick(file: File) {
         if (file.isDirectory) {
-            val files = openFile(file.path)
-            binding.fileList.adapter = FileAdapter(this, files)
+            pathToDirectory = file.path
+            watchFilesInRecycleView(pathToDirectory)
         } else {
-            val imagePath = file.path
-            val fileUri = FileProvider.getUriForFile(
-                this,
-                this.applicationContext.packageName + ".provider",
-                File(imagePath)
-            )
-            val intent = Intent(Intent.ACTION_VIEW)
-            intent.setDataAndType(
-                fileUri, when {
-                    fileUri.toString().contains(".doc", true) || fileUri.toString()
-                        .contains(".txt", true) -> "application/msword"
-
-                    fileUri.toString().contains(".pdf", true) -> "application/pdf"
-                    fileUri.toString().contains(".mp3", true) || fileUri.toString()
-                        .contains(".wav", true) -> "audio/*"
-
-                    fileUri.toString().contains(".jpeg", true) || fileUri.toString()
-                        .contains(".png", true) || fileUri.toString()
-                        .contains(".jpg", true) -> "image/*"
-
-                    fileUri.toString().contains(".mp4", true) -> "video/*"
-                    else -> "*/*"
-                }
-            )
-            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            startActivity(intent)
+            try {
+                FileOpener(this, file.path).opener()
+            } catch (e: IOException) {
+                e.printStackTrace()
+            }
         }
     }
 
-}
+    override fun onLongClick(file: File) {
 
+    }
+
+}

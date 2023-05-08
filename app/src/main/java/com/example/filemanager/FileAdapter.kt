@@ -1,9 +1,12 @@
 package com.example.filemanager
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.os.Build
 import android.text.format.Formatter
 import android.view.LayoutInflater
+import android.view.Menu
+import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
@@ -15,7 +18,7 @@ import java.nio.file.attribute.BasicFileAttributes
 import java.text.SimpleDateFormat
 import java.util.Locale
 
-class FileAdapter(val context: Activity, val files: Array<out File>) :
+class FileAdapter(val context: Activity, var files: Array<out File>) :
     RecyclerView.Adapter<FileAdapter.FileHolder>() {
 
     class FileHolder(view: View, val context: Activity) : ViewHolder(view) {
@@ -27,7 +30,7 @@ class FileAdapter(val context: Activity, val files: Array<out File>) :
                 if (file.isDirectory) {
                     icon.setImageResource(R.drawable.folder)
                     val countFilesInDirectory =
-                        "${file.listFiles().filter { it.isFile }.size} files"
+                        "${file.listFiles()?.filter { it.isFile }?.size} files"
                     size.text = countFilesInDirectory
                 } else {
                     icon.setImageResource(R.drawable.file)
@@ -46,6 +49,10 @@ class FileAdapter(val context: Activity, val files: Array<out File>) :
             itemView.setOnClickListener {
                 (context as Listener).onClick(file)
             }
+            itemView.setOnLongClickListener {
+                (context as Listener).onLongClick(file)
+                true
+            }
         }
     }
 
@@ -60,7 +67,14 @@ class FileAdapter(val context: Activity, val files: Array<out File>) :
         holder.bind(files[position])
     }
 
+    @SuppressLint("NotifyDataSetChanged")
+    fun changeFiles(newfiles: Array<File>) {
+        files = newfiles
+        notifyDataSetChanged()
+    }
+
     interface Listener {
         fun onClick(file: File)
+        fun onLongClick(file: File)
     }
 }

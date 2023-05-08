@@ -36,7 +36,7 @@
             app:layout_constraintTop_toTopOf="parent"/>
 
         <TextView
-            android:paddingLeft="5dp"
+            android:paddingStart="5dp"
             android:id="@+id/path"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -54,6 +54,7 @@
 
         <androidx.recyclerview.widget.RecyclerView
             android:padding="1dp"
+            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
             android:id="@+id/fileList"
             android:layout_width="match_parent"
             android:layout_height="0dp"
