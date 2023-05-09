@@ -3,14 +3,15 @@ package com.example.filemanager
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
+import android.provider.Settings
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.widget.TextView
-import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -41,7 +42,7 @@ class MainActivity : AppCompatActivity(), FileAdapter.Listener {
         setContentView(binding.root)
         kindSorting = binding.menu.menu.findItem(R.id.default_choose)
         setSupportActionBar(binding.toolbar)
-        if (!checkPermission()) requestPermission()
+        requestPermission()
         binding.path.isSelected = true
         pathToDirectory =
             savePath.liveDataPath.value ?: Environment.getExternalStorageDirectory().path
@@ -143,25 +144,22 @@ class MainActivity : AppCompatActivity(), FileAdapter.Listener {
         }
     }
 
-    private fun checkPermission() = ContextCompat.checkSelfPermission(
-        this,
-        Manifest.permission.READ_EXTERNAL_STORAGE
-    ) == PackageManager.PERMISSION_GRANTED
-
     private fun requestPermission() {
-        if (ActivityCompat.shouldShowRequestPermissionRationale(
+        if (ContextCompat.checkSelfPermission(
                 this,
                 Manifest.permission.READ_EXTERNAL_STORAGE
-            )
-        ) {
-            Toast.makeText(this, "please activate permission in settings", Toast.LENGTH_SHORT)
-                .show()
-        } else {
+            ) != PackageManager.PERMISSION_GRANTED
+        )
             ActivityCompat.requestPermissions(
                 this,
                 arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE),
                 1
             )
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && !Environment.isExternalStorageManager()) {
+            val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
+            val uri = Uri.fromParts("package", packageName, null)
+            intent.data = uri
+            startActivity(intent)
         }
     }
 
@@ -212,7 +210,8 @@ class MainActivity : AppCompatActivity(), FileAdapter.Listener {
                     .insertItem(Item(null, directory.path, directory.hashCode().toString()))
             } else if (hash.first().hash != directory.hashCode().toString()) {
                 listFiles.add(directory)
-                dataBase.workWithData().updateItem(Item(null, directory.path, directory.hashCode().toString()))
+                dataBase.workWithData()
+                    .updateItem(Item(null, directory.path, directory.hashCode().toString()))
             }
         }
         return listFiles
