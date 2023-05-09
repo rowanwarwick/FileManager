@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.os.Build
 import android.text.format.Formatter
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -85,6 +86,10 @@ class FileAdapter(private val context: Activity, private var files: Array<out Fi
     fun changeFiles(newFiles: Array<File>) {
         files = newFiles
         notifyDataSetChanged()
+    }
+
+    fun pr() {
+        files.forEach { Log.e("proverka", it.name) }
     }
 
     interface Listener {

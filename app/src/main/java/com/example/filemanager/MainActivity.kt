@@ -17,7 +17,6 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.core.view.GravityCompat
-import androidx.lifecycle.Observer
 import com.example.filemanager.DB.DataBase
 import com.example.filemanager.DB.Item
 import com.example.filemanager.databinding.ActivityMainBinding
@@ -27,10 +26,12 @@ import java.nio.file.Files
 import java.nio.file.attribute.BasicFileAttributes
 
 class MainActivity : AppCompatActivity(), FileAdapter.Listener {
+    private var showChangeFile = false
     private lateinit var adapterFiles: FileAdapter
     private lateinit var binding: ActivityMainBinding
     private lateinit var pathToDirectory: String
     private lateinit var kindSorting: MenuItem
+    private var allChangedFiles: Array<File> = arrayOf()
     private val dataBase by lazy { DataBase.getDB(this) }
     private val savePath: ViewModelForPath by viewModels()
 
@@ -44,16 +45,18 @@ class MainActivity : AppCompatActivity(), FileAdapter.Listener {
         binding.path.isSelected = true
         pathToDirectory =
             savePath.liveDataPath.value ?: Environment.getExternalStorageDirectory().path
+        binding.path.text = pathToDirectory
         adapterFiles = FileAdapter(this, File(pathToDirectory).listFiles() ?: arrayOf())
         binding.fileList.adapter = adapterFiles
-        watchFilesInRecycleView(pathToDirectory)
+        watchFilesInRecycleView(File(pathToDirectory).listFiles())
         openNavigationView()
         goInUpFolder()
         chooseKindSorting()
-        savePath.liveDataPath.observe(this, Observer {
+        savePath.liveDataPath.observe(this) {
+            binding.path.text = it
             pathToDirectory = it
-        })
-//        hashCodeAllFiles()
+        }
+        hashCodeAllFiles()
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
@@ -62,13 +65,14 @@ class MainActivity : AppCompatActivity(), FileAdapter.Listener {
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        Toast.makeText(this, item.title.toString(), Toast.LENGTH_SHORT).show()
+        showChangeFile = !showChangeFile
+        watchFilesInRecycleView(if (showChangeFile) allChangedFiles else File(pathToDirectory).listFiles())
         return true
     }
 
     private fun sortingArrayFiles(files: Array<File>) {
         val menu = binding.menu.menu
-        when (kindSorting){
+        when (kindSorting) {
             menu.findItem(R.id.default_choose) -> files.sort()
             menu.findItem(R.id.size_asc) -> files.sortWith(compareBy { it.length() })
             menu.findItem(R.id.size_desc) -> files.sortWith(compareByDescending { it.length() })
@@ -102,10 +106,8 @@ class MainActivity : AppCompatActivity(), FileAdapter.Listener {
         }
     }
 
-    private fun watchFilesInRecycleView(path: String) {
+    private fun watchFilesInRecycleView(array: Array<File>?) {
         binding.noFiles.visibility = View.INVISIBLE
-        binding.path.text = path
-        val array = File(path).listFiles()
         if (array == null || array.isEmpty()) {
             binding.noFiles.visibility = View.VISIBLE
         } else {
@@ -119,7 +121,7 @@ class MainActivity : AppCompatActivity(), FileAdapter.Listener {
             kindSorting.isChecked = false
             it.isChecked = true
             kindSorting = it
-            watchFilesInRecycleView(pathToDirectory)
+            watchFilesInRecycleView(if (showChangeFile) allChangedFiles else File(pathToDirectory).listFiles())
             return@setNavigationItemSelectedListener true
         }
     }
@@ -136,7 +138,7 @@ class MainActivity : AppCompatActivity(), FileAdapter.Listener {
                 val path = it.text.dropLastWhile { char -> char != File.separatorChar }.dropLast(1)
                     .toString()
                 savePath.liveDataPath.value = path
-                watchFilesInRecycleView(pathToDirectory)
+                watchFilesInRecycleView(File(pathToDirectory).listFiles())
             }
         }
     }
@@ -166,7 +168,7 @@ class MainActivity : AppCompatActivity(), FileAdapter.Listener {
     override fun onClick(file: File) {
         if (file.isDirectory) {
             savePath.liveDataPath.value = file.path
-            watchFilesInRecycleView(pathToDirectory)
+            watchFilesInRecycleView(File(pathToDirectory).listFiles())
         } else {
             try {
                 FileOpener(this, file.path).opener()
@@ -191,23 +193,27 @@ class MainActivity : AppCompatActivity(), FileAdapter.Listener {
 
     private fun hashCodeAllFiles() {
         Thread {
-            val files = allFiles(File(Environment.getExternalStorageDirectory().path))
-            for (file in files) {
-                dataBase.workWithData().insertItem(Item(null, file.path, file.hashCode().toString()))
-            }
+            allChangedFiles =
+                allChangedFiles(File(Environment.getExternalStorageDirectory().path)).toTypedArray()
         }.start()
     }
 
-    private fun allFiles(directory: File): MutableList<File> {
+    private fun allChangedFiles(directory: File): MutableList<File> {
         val listFiles = mutableListOf<File>()
         if (directory.isDirectory) {
             val inDirectory = directory.listFiles() ?: arrayOf<File>()
             for (file in inDirectory) {
-                println(file.name)
-                listFiles.addAll(allFiles(file))
+                listFiles.addAll(allChangedFiles(file))
             }
         } else {
-            listFiles.add(directory)
+            val hash = dataBase.workWithData().getItem(directory.path)
+            if (hash.isEmpty()) {
+                dataBase.workWithData()
+                    .insertItem(Item(null, directory.path, directory.hashCode().toString()))
+            } else if (hash.first().hash != directory.hashCode().toString()) {
+                listFiles.add(directory)
+                dataBase.workWithData().updateItem(Item(null, directory.path, directory.hashCode().toString()))
+            }
         }
         return listFiles
     }

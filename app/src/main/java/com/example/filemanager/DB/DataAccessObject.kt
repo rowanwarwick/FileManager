@@ -11,6 +11,7 @@ interface DataAccessObject {
     @Insert
     fun insertItem(item: Item)
     @Query("SELECT * FROM hashValueFiles WHERE path = :path")
-    fun getItem(path: String): Flow<List<Item>>
-
+    fun getItem(path: String): List<Item>
+    @Update
+    fun updateItem(item: Item)
 }
