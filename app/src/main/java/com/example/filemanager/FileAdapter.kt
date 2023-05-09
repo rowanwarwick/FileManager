@@ -5,8 +5,6 @@ import android.app.Activity
 import android.os.Build
 import android.text.format.Formatter
 import android.view.LayoutInflater
-import android.view.Menu
-import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
@@ -18,11 +16,11 @@ import java.nio.file.attribute.BasicFileAttributes
 import java.text.SimpleDateFormat
 import java.util.Locale
 
-class FileAdapter(val context: Activity, var files: Array<out File>) :
+class FileAdapter(private val context: Activity, private var files: Array<out File>) :
     RecyclerView.Adapter<FileAdapter.FileHolder>() {
 
-    class FileHolder(view: View, val context: Activity) : ViewHolder(view) {
-        val item = ItemBinding.bind(view)
+    class FileHolder(view: View, private val context: Activity) : ViewHolder(view) {
+        private val item = ItemBinding.bind(view)
 
         fun bind(file: File) {
             item.apply {
@@ -30,10 +28,10 @@ class FileAdapter(val context: Activity, var files: Array<out File>) :
                 if (file.isDirectory) {
                     icon.setImageResource(R.drawable.folder)
                     val countFilesInDirectory =
-                        "${file.listFiles()?.filter { it.isFile }?.size} files"
+                        "${file.listFiles()?.filter { it.isFile }?.size ?: 0} files"
                     size.text = countFilesInDirectory
                 } else {
-                    icon.setImageResource(R.drawable.file)
+                    icon.setImageResource(icon(file))
                     size.text = Formatter.formatShortFileSize(context, file.length())
                 }
                 val createdTime = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -54,6 +52,22 @@ class FileAdapter(val context: Activity, var files: Array<out File>) :
                 true
             }
         }
+
+        private fun icon(file: File): Int{
+            return when (file.name.substringAfterLast(".", "")) {
+                "avi" -> R.drawable.avi
+                "bmp" -> R.drawable.bmp
+                "doc" -> R.drawable.doc
+                "txt" -> R.drawable.txt
+                "jpg", "jpeg" -> R.drawable.jpg
+                "mp3" -> R.drawable.mp3
+                "mp4" -> R.drawable.mp4
+                "pdf" -> R.drawable.pdf
+                "png" -> R.drawable.png
+                "wav" -> R.drawable.wav
+                else -> R.drawable.file
+            }
+        }
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): FileHolder {
@@ -68,8 +82,8 @@ class FileAdapter(val context: Activity, var files: Array<out File>) :
     }
 
     @SuppressLint("NotifyDataSetChanged")
-    fun changeFiles(newfiles: Array<File>) {
-        files = newfiles
+    fun changeFiles(newFiles: Array<File>) {
+        files = newFiles
         notifyDataSetChanged()
     }
 

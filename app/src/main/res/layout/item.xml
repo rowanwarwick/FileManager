@@ -16,7 +16,7 @@
             android:id="@+id/icon"
             android:padding="1dp"
             tools:src="@drawable/folder"
-            android:layout_width="wrap_content"
+            android:layout_width="40dp"
             android:layout_height="match_parent"/>
 
         <LinearLayout

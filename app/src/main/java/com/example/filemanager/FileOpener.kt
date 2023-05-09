@@ -1,7 +1,9 @@
 package com.example.filemanager
 
+import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
+import android.widget.Toast
 import androidx.core.content.FileProvider
 import java.io.File
 
@@ -13,24 +15,24 @@ class FileOpener(private val context: Context, val path: String) {
             File(path)
         )
         val intent = Intent(Intent.ACTION_VIEW)
-        intent.setDataAndType(
-            fileUri, when {
-                fileUri.toString().contains(".doc", true) || fileUri.toString()
-                    .contains(".txt", true) -> "application/msword"
+        try {
+            intent.setDataAndType(fileUri, detectFormat())
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            context.startActivity(intent)
+        } catch (e: ActivityNotFoundException) {
+            Toast.makeText(context, "I can't find need app", Toast.LENGTH_SHORT).show()
+        }
+    }
 
-                fileUri.toString().contains(".pdf", true) -> "application/pdf"
-                fileUri.toString().contains(".mp3", true) || fileUri.toString()
-                    .contains(".wav", true) -> "audio/*"
-
-                fileUri.toString().contains(".jpeg", true) || fileUri.toString()
-                    .contains(".png", true) || fileUri.toString()
-                    .contains(".jpg", true) -> "image/*"
-
-                fileUri.toString().contains(".mp4", true) -> "video/*"
-                else -> "*/*"
-            }
-        )
-        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        context.startActivity(intent)
+    private fun detectFormat(): String {
+        return when (path.substringAfterLast(".", "")) {
+            "txt" -> "text/plain"
+            "doc" -> "application/msword"
+            "pdf" -> "application/pdf"
+            "mp3", "wav" -> "audio/*"
+            "jpeg", "png", "jpg" -> "image/*"
+            "mp4" -> "video/*"
+            else -> "*/*"
+        }
     }
 }
