@@ -4,8 +4,9 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.os.Build
 import android.text.format.Formatter
-import android.util.Log
 import android.view.LayoutInflater
+import android.view.Menu
+import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
@@ -54,7 +55,7 @@ class FileAdapter(private val context: Activity, private var files: Array<out Fi
             }
         }
 
-        private fun icon(file: File): Int{
+        private fun icon(file: File): Int {
             return when (file.name.substringAfterLast(".", "")) {
                 "avi" -> R.drawable.avi
                 "bmp" -> R.drawable.bmp
@@ -83,13 +84,36 @@ class FileAdapter(private val context: Activity, private var files: Array<out Fi
     }
 
     @SuppressLint("NotifyDataSetChanged")
-    fun changeFiles(newFiles: Array<File>) {
+    fun changeFiles(newFiles: Array<File>, menu: Menu, kindSorting: MenuItem) {
         files = newFiles
+        if (files.isNotEmpty()) sortingArrayFiles(menu, kindSorting)
         notifyDataSetChanged()
     }
 
-    fun pr() {
-        files.forEach { Log.e("proverka", it.name) }
+    private fun sortingArrayFiles(menu: Menu, kindSorting: MenuItem) {
+        when (kindSorting) {
+            menu.findItem(R.id.default_choose) -> files.sort()
+            menu.findItem(R.id.size_asc) -> files.sortWith(compareBy { it.length() })
+            menu.findItem(R.id.size_desc) -> files.sortWith(compareByDescending { it.length() })
+            menu.findItem(R.id.date_asc) -> files.sortWith(compareBy {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) Files.readAttributes(
+                    it.toPath(),
+                    BasicFileAttributes::class.java
+                )
+                    .creationTime().toMillis() else it.lastModified()
+            })
+
+            menu.findItem(R.id.date_desc) -> files.sortWith(compareByDescending {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) Files.readAttributes(
+                    it.toPath(),
+                    BasicFileAttributes::class.java
+                )
+                    .creationTime().toMillis() else it.lastModified()
+            })
+
+            menu.findItem(R.id.format_asc) -> files.sortWith(compareBy { it.extension })
+            menu.findItem(R.id.format_desc) -> files.sortWith(compareByDescending { it.extension })
+        }
     }
 
     interface Listener {
